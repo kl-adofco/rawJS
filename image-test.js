@@ -1,22 +1,29 @@
-try {
-  const bytes = $response.bodyBytes;
+(async () => {
+  try {
+    const bytes = $response.bodyBytes;
 
-  console.log("[IMAGE TEST] URL: " + $request.url);
-  console.log("[IMAGE TEST] bodyBytes exists: " + Boolean(bytes));
+    if (!bytes || bytes.byteLength === 0) {
+      console.log("[UPLOAD] No image bytes");
+      return;
+    }
 
-  if (bytes) {
-    const arr = new Uint8Array(bytes);
+    console.log("[UPLOAD] Original size: " + bytes.byteLength);
 
-    const header = Array.from(arr.slice(0, 4))
-      .map(x => x.toString(16).padStart(2, "0"))
-      .join(" ");
+    const result = await $task.fetch({
+      url: "https://webhook.site/0a8bdfd7-7e88-48f2-8936-436b478c0e23",
+      method: "POST",
+      headers: {
+        "Content-Type": "image/jpeg"
+      },
+      body: bytes
+    });
 
-    console.log("[IMAGE TEST] SIZE: " + arr.byteLength);
-    console.log("[IMAGE TEST] HEADER: " + header);
-    console.log("[IMAGE TEST] JPEG: " + header.startsWith("ff d8 ff"));
+    console.log("[UPLOAD] Status: " + result.statusCode);
+    console.log("[UPLOAD] Response: " + result.body);
+
+  } catch (e) {
+    console.log("[UPLOAD] Error: " + String(e));
+  } finally {
+    $done({});
   }
-} catch (e) {
-  console.log("[IMAGE TEST] ERROR: " + String(e));
-}
-
-$done({});
+})();
