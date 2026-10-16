@@ -1,6 +1,5 @@
 (async () => {
   try {
-    // 1. 获取图片二进制
     const bytes = $response.bodyBytes;
 
     if (!bytes || bytes.byteLength === 0) {
@@ -8,37 +7,41 @@
       return;
     }
 
-    // 2. 转换为 Uint8Array
     const uint8 = new Uint8Array(bytes);
 
-    // 3. 验证图片数据
-    const header = Array.from(uint8.slice(0, 4))
-      .map(x => x.toString(16).padStart(2, "0"))
-      .join(" ");
-
-    console.log("[UPLOAD] URL: " + $request.url);
     console.log("[UPLOAD] Original size: " + uint8.byteLength);
-    console.log("[UPLOAD] Header: " + header);
-    console.log("[UPLOAD] JPEG: " + header.startsWith("ff d8 ff"));
 
-    // 4. 上传到 Webhook.site
+    // 分块转换，避免一次性处理大数组
+    const chunkSize = 8192;
+    const chunks = [];
+
+    for (let i = 0; i < uint8.length; i += chunkSize) {
+      const chunk = uint8.subarray(i, i + chunkSize);
+      chunks.push(String.fromCharCode.apply(null, chunk));
+    }
+
+    const binaryString = chunks.join("");
+
+    // 转换成 Base64
+    const base64 = btoa(binaryString);
+
+    console.log("[UPLOAD] Base64 size: " + base64.length);
+
+    // 上传 Base64 字符串
     const result = await $task.fetch({
       url: "https://webhook.site/0a8bdfd7-7e88-48f2-8936-436b478c0e23",
       method: "POST",
       headers: {
-        "Content-Type": "application/octet-stream"
+        "Content-Type": "text/plain; charset=utf-8"
       },
-      body: uint8
+      body: base64
     });
 
-    // 5. 输出上传结果
     console.log("[UPLOAD] Status: " + result.statusCode);
-    console.log("[UPLOAD] Response: " + String(result.body).slice(0, 200));
 
   } catch (e) {
     console.log("[UPLOAD] Error: " + String(e));
   } finally {
-    // 不修改原始图片响应
     $done({});
   }
 })();
